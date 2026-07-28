@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import api from "../api/axios"; // ⚠️ Vérifie le chemin selon l'emplacement réel de ton fichier
+import api from "../api/axios"; 
 
 function RightSectionSignup() {
   const navigate = useNavigate();
