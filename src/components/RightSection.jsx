@@ -11,25 +11,32 @@ function RightSection() {
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
+  e.preventDefault();
+  setError("");
+  setLoading(true);
 
-    if (!email || !password) {
-      setError("Remplissez tous les champs");
-      return;
+  try {
+    const res = await api.post("/auth/login", { email, password });
+    const data = res.data;
+
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("user", JSON.stringify(data.user));
+
+    // Redirection selon le rôle
+    if (data.user.role === "admin") {
+      navigate("/admin");
+    } else if (data.user.role === "teacher") {
+      navigate("/teacher");
+    } else {
+      navigate("/student");
     }
 
-    setLoading(true);
-    try {
-      const res = await api.post("/auth/login", { email, password });
-      localStorage.setItem("token", res.data.token);
-      navigate("/acceuil"); // ⚠️ Adapte la route vers ta page d'accueil réelle
-    } catch (err) {
-      setError("Email ou mot de passe incorrect");
-    } finally {
-      setLoading(false);
-    }
-  };
+  } catch (err) {
+    setError(err.response?.data?.message || err.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="right-section flex-1 p-12 flex flex-col justify-center">
