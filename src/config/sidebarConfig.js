@@ -3,27 +3,32 @@ export const sidebarConfig = {
   admin: [
     { label: "Dashboard", icon: "📊", path: "/admin" },
     { label: "Users", icon: "👥", path: "/admin/users" },
-    { label: "Departments", icon: "🏛️", path: "/admin/departments" },
+  
     { label: "Courses", icon: "📚", path: "/admin/courses" },
-    { label: "Reports", icon: "📈", path: "/admin/reports" },
+     { label: "Quizzes", icon: "❓", path: "/admin/quizzes" },
+    { label: "Students", icon: "🎓", path: "/admin/students" },
+    { label: "Docs", icon: "📄", path: "/admin/docs" },
+    { label: "Analytics", icon: "📈", path: "/admin/analytics" },
     { label: "Settings", icon: "⚙️", path: "/admin/settings" },
   ],
   teacher: [
-    { label: "Dashboard", icon: "📊", path: "/teacher" },
-    { label: "My Courses", icon: "📚", path: "/teacher/courses" },
-    { label: "Content", icon: "🧩", path: "/teacher/content" },
+    
+    { label: "Courses", icon: "📚", path: "/teacher/courses" },
+  { label: "Students", icon: "🎓", path: "/teacher/students" },
     { label: "Quizzes", icon: "❓", path: "/teacher/quizzes" },
-    { label: "Attempts", icon: "📝", path: "/teacher/attempts" },
-    { label: "Class Analytics", icon: "📈", path: "/teacher/analytics" },
-    { label: "Departments", icon: "🏛️", path: "/teacher/departments" },
+    
+    { label: "Docs", icon: "📄", path: "/teacher/docs" },
+    { label: "Settings", icon: "⚙️", path: "/teacher/settings" },
+
+    
   ],
   student: [
-    { label: "Dashboard", icon: "📊", path: "/student" },
-    { label: "Courses", icon: "📚", path: "/student/courses" },
-    { label: "My Learning", icon: "🎓", path: "/student/learning" },
-    { label: "Results", icon: "✅", path: "/student/results" },
-    { label: "Recommendations", icon: "✨", path: "/student/recommendations" },
-    { label: "Profile", icon: "👤", path: "/student/profile" },
-     { label: "Departments", icon: "🏛️", path: "/student/departments" },
+    
+    { label: "My courses", icon: "📚", path: "/student/courses" },
+    { label: "My Progress", icon: "📈", path: "/student/progress" },
+{ label: "My Quizzes", icon: "❓", path: "/student/quizzes" },
+    
+    { label: "My Certificates", icon: "🏆", path: "/student/certificates" },
+     { label: "Docs", icon: "📄", path: "/student/docs" },
   ],
 };

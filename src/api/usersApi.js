@@ -9,3 +9,7 @@ export const getAllUsers = async () => {
   const res = await api.get("/users/list", { headers: authHeader() });
   return res.data;
 };
+export const updateUser = async (id, data) => {
+  const res = await api.put(`/users/${id}`, data, { headers: authHeader() });
+  return res.data;
+};
