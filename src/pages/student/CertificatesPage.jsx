@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import { getMyCertificates } from "../../api/inscriptionApi";
 import { useTheme } from "../../context/ThemeContext";
+import jsPDF from "jspdf";
 
 function CertificatesPage() {
   const [certificates, setCertificates] = useState([]);
@@ -24,6 +25,44 @@ function CertificatesPage() {
     };
     fetchCertificates();
   }, []);
+
+  const handleDownload = (cert) => {
+    const doc = new jsPDF({ orientation: "landscape" });
+
+    doc.setFillColor(253, 246, 227);
+    doc.rect(0, 0, 297, 210, "F");
+
+    doc.setDrawColor(217, 165, 32);
+    doc.setLineWidth(2);
+    doc.rect(10, 10, 277, 190);
+
+    doc.setTextColor(146, 64, 14);
+    doc.setFontSize(28);
+    doc.text("Certificate of Completion", 148, 60, { align: "center" });
+
+    doc.setFontSize(14);
+    doc.setTextColor(60, 40, 10);
+    doc.text("This certifies that", 148, 85, { align: "center" });
+
+    doc.setFontSize(20);
+    doc.text(`${user?.firstName} ${user?.lastName}`, 148, 100, { align: "center" });
+
+    doc.setFontSize(14);
+    doc.text("has successfully completed", 148, 115, { align: "center" });
+
+    doc.setFontSize(18);
+    doc.text(cert.courseTitle, 148, 130, { align: "center" });
+
+    doc.setFontSize(12);
+    if (cert.grade !== null) {
+      doc.text(`Grade: ${cert.grade}%`, 148, 145, { align: "center" });
+    }
+    doc.text(`Date: ${new Date(cert.date).toLocaleDateString("fr-FR")}`, 148, 155, { align: "center" });
+
+    doc.save(`certificate-${cert.courseTitle.replace(/\s+/g, "-")}.pdf`);
+
+    alert("Certificate downloaded!");
+  };
 
   return (
     <DashboardLayout title="Certificates" subtitle="Your achievements">
@@ -63,7 +102,10 @@ function CertificatesPage() {
               <p className="text-amber-800 mb-4">
                 Date: {new Date(cert.date).toLocaleDateString("fr-FR")}
               </p>
-              <button className="bg-blue-600 text-white px-5 py-2.5 rounded-full font-medium text-sm hover:bg-blue-700">
+              <button
+                onClick={() => handleDownload(cert)}
+                className="bg-blue-600 text-white px-5 py-2.5 rounded-full font-medium text-sm hover:bg-blue-700"
+              >
                 ⬇ Download
               </button>
             </div>
