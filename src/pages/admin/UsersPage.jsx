@@ -16,18 +16,20 @@ const roleColorsLight = {
 };
 
 function UsersPage() {
-  const [users, setUsers] = useState([]);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [allUsers, setAllUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const roleColors = isDark ? roleColorsDark : roleColorsLight;
 
-  // Modal state (partagé Add + Edit)
+  // Recherche + Filtre
+  const [searchTerm, setSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
+
+  // Modal state
   const [showModal, setShowModal] = useState(false);
-  const [editingId, setEditingId] = useState(null); // null = Add, sinon = Edit
+  const [editingId, setEditingId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
   const [form, setForm] = useState({
@@ -41,9 +43,8 @@ function UsersPage() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const data = await getAllUsers(page, 10);
-      setUsers(data.users);
-      setTotalPages(data.totalPages);
+      const data = await getAllUsers(1, 1000);
+      setAllUsers(data.users);
     } catch (err) {
       console.error("Erreur chargement users", err);
       setError("Impossible de charger les utilisateurs");
@@ -54,7 +55,15 @@ function UsersPage() {
 
   useEffect(() => {
     fetchUsers();
-  }, [page]);
+  }, []);
+
+  // Filtrage: recherche par nom + filtre par role
+  const filteredUsers = allUsers.filter((user) => {
+    const fullName = `${user.firstName} ${user.lastName}`.toLowerCase();
+    const matchesSearch = fullName.includes(searchTerm.toLowerCase());
+    const matchesRole = roleFilter === "all" || user.role === roleFilter;
+    return matchesSearch && matchesRole;
+  });
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -73,7 +82,7 @@ function UsersPage() {
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
-      password: "", // بلاش نعرض password القديمة
+      password: "",
       role: user.role,
     });
     setFormError("");
@@ -86,12 +95,10 @@ function UsersPage() {
     setFormError("");
     try {
       if (editingId) {
-        // Edit: بلاش نبعث password إذا خاوية (بلاش تعديل)
         const payload = { ...form };
         if (!payload.password) delete payload.password;
         await updateUser(editingId, payload);
       } else {
-        // Add: زيد defaults حسب role
         const payload = { ...form };
         if (form.role === "student") {
           payload.studentCode = `ETU${Date.now().toString().slice(-6)}`;
@@ -127,11 +134,40 @@ function UsersPage() {
         </button>
       </div>
 
+      {/* Barre de recherche + Filtre */}
+      <div className="flex gap-3 mb-4">
+        <input
+          type="text"
+          placeholder="Rechercher par nom..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className={`flex-1 rounded-lg border px-4 py-2.5 text-sm outline-none focus:border-cyan-400 ${
+            isDark ? "bg-slate-900 border-slate-800 text-white placeholder-slate-500" : "bg-white border-slate-200 text-slate-900 placeholder-slate-400"
+          }`}
+        />
+        <select
+          value={roleFilter}
+          onChange={(e) => setRoleFilter(e.target.value)}
+          className={`rounded-lg border px-4 py-2.5 text-sm outline-none focus:border-cyan-400 ${
+            isDark ? "bg-slate-900 border-slate-800 text-white" : "bg-white border-slate-200 text-slate-900"
+          }`}
+        >
+          <option value="all">Tous les rôles</option>
+          <option value="admin">Admin</option>
+          <option value="teacher">Teacher</option>
+          <option value="student">Student</option>
+        </select>
+      </div>
+
       <div className={`rounded-2xl border overflow-hidden ${isDark ? "bg-slate-950 border-slate-800" : "bg-white border-slate-200"}`}>
         {loading ? (
           <p className={`p-6 ${isDark ? "text-slate-400" : "text-slate-500"}`}>Chargement...</p>
         ) : error ? (
           <p className="p-6 text-red-500">{error}</p>
+        ) : filteredUsers.length === 0 ? (
+          <p className={`p-6 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+            Aucun utilisateur trouvé.
+          </p>
         ) : (
           <table className="w-full text-sm">
             <thead>
@@ -143,7 +179,7 @@ function UsersPage() {
               </tr>
             </thead>
             <tbody>
-              {users.map((user) => (
+              {filteredUsers.map((user) => (
                 <tr key={user._id} className={`border-b last:border-0 ${isDark ? "border-slate-800" : "border-slate-100"}`}>
                   <td className={`px-6 py-3 font-medium ${isDark ? "text-white" : "text-slate-800"}`}>
                     {user.firstName} {user.lastName}
@@ -182,32 +218,6 @@ function UsersPage() {
           </table>
         )}
       </div>
-
-      {!loading && !error && totalPages > 1 && (
-        <div className="flex justify-center items-center gap-4 mt-4">
-          <button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-            className={`px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-40 ${
-              isDark ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-900"
-            }`}
-          >
-            Previous
-          </button>
-          <span className={isDark ? "text-slate-400" : "text-slate-500"}>
-            Page {page} / {totalPages}
-          </span>
-          <button
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page === totalPages}
-            className={`px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-40 ${
-              isDark ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-900"
-            }`}
-          >
-            Next
-          </button>
-        </div>
-      )}
 
       {/* Modal Add/Edit User */}
       {showModal && (

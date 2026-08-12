@@ -32,9 +32,13 @@ function QuizzesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Recherche + Filtre
+  const [searchTerm, setSearchTerm] = useState("");
+  const [courseFilter, setCourseFilter] = useState("all");
+
   // Modal & Edit State
   const [showModal, setShowModal] = useState(false);
-  const [editingQuizId, setEditingQuizId] = useState(null); // null = création, string = édition
+  const [editingQuizId, setEditingQuizId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
@@ -46,7 +50,6 @@ function QuizzesPage() {
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
-  // 1. Charger la liste des cours (Exécuté UNE seule fois au démarrage)
   useEffect(() => {
     const fetchCoursesList = async () => {
       try {
@@ -60,7 +63,6 @@ function QuizzesPage() {
     fetchCoursesList();
   }, []);
 
-  // 2. Charger les Quizzes (Rechargé quand la page change)
   const fetchQuizzesList = async () => {
     setLoading(true);
     setError(null);
@@ -80,7 +82,15 @@ function QuizzesPage() {
     fetchQuizzesList();
   }, [page]);
 
-  // Ouvrir le modal en mode CRÉATION
+  // Filtrage: recherche par titre + par cours
+  const filteredQuizzes = quizzes.filter((quiz) => {
+    const title = (quiz.title || quiz.Title || "").toLowerCase();
+    const matchesSearch = title.includes(searchTerm.toLowerCase());
+    const quizCourseId = quiz.cours?._id || quiz.cours;
+    const matchesCourse = courseFilter === "all" || quizCourseId === courseFilter;
+    return matchesSearch && matchesCourse;
+  });
+
   const handleOpenCreateModal = () => {
     setEditingQuizId(null);
     setFormData({
@@ -92,7 +102,6 @@ function QuizzesPage() {
     setShowModal(true);
   };
 
-  // Ouvrir le modal en mode ÉDITION
   const handleEdit = (quiz) => {
     setEditingQuizId(quiz._id);
     setFormData({
@@ -106,7 +115,6 @@ function QuizzesPage() {
     setShowModal(true);
   };
 
-  // Handle Form Submit (Création OU Modification)
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.title || !formData.description || !formData.cours) {
@@ -128,7 +136,6 @@ function QuizzesPage() {
     setSubmitting(true);
     try {
       if (editingQuizId) {
-        // ✏️ Mode ÉDITION
         await updateQuiz(editingQuizId, {
           title: formData.title,
           description: formData.description,
@@ -136,7 +143,6 @@ function QuizzesPage() {
           questions: parsedQuestions,
         });
       } else {
-        // ➕ Mode CRÉATION
         await createQuiz({
           title: formData.title,
           description: formData.description,
@@ -146,7 +152,6 @@ function QuizzesPage() {
         });
       }
 
-      // Réinitialisation du formulaire & Fermeture Modal
       setShowModal(false);
       setEditingQuizId(null);
       setFormData({
@@ -156,7 +161,6 @@ function QuizzesPage() {
         questionsJson: defaultQuestionsJson,
       });
 
-      // Recharger la liste des quiz
       fetchQuizzesList();
 
     } catch (err) {
@@ -168,7 +172,6 @@ function QuizzesPage() {
     }
   };
 
-  // Handle Delete
   const handleDelete = async (id) => {
     if (!window.confirm("Voulez-vous vraiment supprimer ce quiz ?")) return;
     try {
@@ -194,15 +197,42 @@ function QuizzesPage() {
         </button>
       </div>
 
+      {/* Barre de recherche + Filtre par cours */}
+      <div className="flex gap-3 mb-4">
+        <input
+          type="text"
+          placeholder="Rechercher par titre..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className={`flex-1 rounded-lg border px-4 py-2.5 text-sm outline-none focus:border-cyan-400 ${
+            isDark ? "bg-slate-900 border-slate-800 text-white placeholder-slate-500" : "bg-white border-slate-200 text-slate-900 placeholder-slate-400"
+          }`}
+        />
+        <select
+          value={courseFilter}
+          onChange={(e) => setCourseFilter(e.target.value)}
+          className={`rounded-lg border px-4 py-2.5 text-sm outline-none focus:border-cyan-400 ${
+            isDark ? "bg-slate-900 border-slate-800 text-white" : "bg-white border-slate-200 text-slate-900"
+          }`}
+        >
+          <option value="all">Tous les cours</option>
+          {courses.map((c) => (
+            <option key={c._id} value={c._id}>
+              {c.Title || c.title}
+            </option>
+          ))}
+        </select>
+      </div>
+
       {/* Table */}
       <div className={`rounded-2xl border overflow-hidden ${isDark ? "bg-slate-950 border-slate-800" : "bg-white border-slate-200"}`}>
         {loading ? (
           <p className={`p-6 ${isDark ? "text-slate-400" : "text-slate-500"}`}>Chargement...</p>
         ) : error ? (
           <p className="p-6 text-red-500">{error}</p>
-        ) : quizzes.length === 0 ? (
+        ) : filteredQuizzes.length === 0 ? (
           <p className={`p-6 text-center ${isDark ? "text-slate-400" : "text-slate-500"}`}>
-            Aucun quiz disponible.
+            Aucun quiz trouvé.
           </p>
         ) : (
           <table className="w-full text-sm">
@@ -215,7 +245,7 @@ function QuizzesPage() {
               </tr>
             </thead>
             <tbody>
-              {quizzes.map((quiz) => (
+              {filteredQuizzes.map((quiz) => (
                 <tr key={quiz._id} className={`border-b last:border-0 ${isDark ? "border-slate-800 hover:bg-slate-900/50" : "border-slate-50 hover:bg-slate-50/50"}`}>
                   <td className="px-6 py-4 text-blue-400 font-medium">
                     {quiz.title || quiz.Title}
@@ -227,14 +257,12 @@ function QuizzesPage() {
                     {quiz.questionCount ?? (quiz.questions ? quiz.questions.length : 0)}
                   </td>
                   <td className="px-6 py-4 text-right space-x-3">
-                    {/* ✏️ BOUTON EDIT */}
                     <button
                       onClick={() => handleEdit(quiz)}
                       className="text-amber-400 font-medium hover:underline"
                     >
                       Edit
                     </button>
-                    {/* 🗑️ BOUTON DELETE */}
                     <button
                       onClick={() => handleDelete(quiz._id)}
                       className="text-red-400 font-medium hover:underline"
@@ -294,7 +322,6 @@ function QuizzesPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Title */}
               <div>
                 <label className="block text-sm font-medium mb-1">Title</label>
                 <input
@@ -307,7 +334,6 @@ function QuizzesPage() {
                 />
               </div>
 
-              {/* Description */}
               <div>
                 <label className="block text-sm font-medium mb-1">Description</label>
                 <textarea
@@ -320,7 +346,6 @@ function QuizzesPage() {
                 />
               </div>
 
-              {/* Course */}
               <div>
                 <label className="block text-sm font-medium mb-1">Course</label>
                 <select
@@ -338,7 +363,6 @@ function QuizzesPage() {
                 </select>
               </div>
 
-              {/* Questions (JSON) */}
               <div>
                 <label className="block text-sm font-medium mb-1">
                   Questions (JSON with type: mcq/tf)
@@ -352,7 +376,6 @@ function QuizzesPage() {
                 />
               </div>
 
-              {/* Buttons */}
               <div className="flex justify-end gap-3 pt-3 border-t border-slate-700/50">
                 <button
                   type="button"

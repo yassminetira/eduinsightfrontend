@@ -10,6 +10,12 @@ function StudentCoursesPage() {
   const [enrollments, setEnrollments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCourse, setSelectedCourse] = useState(null);
+
+  // State mta3 el recherche + filtres
+  const [searchTerm, setSearchTerm] = useState("");
+  const [levelFilter, setLevelFilter] = useState("all");
+  const [instructorFilter, setInstructorFilter] = useState("all");
+
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const navigate = useNavigate();
@@ -53,11 +59,83 @@ function StudentCoursesPage() {
     return enrollment.status === "completed" ? "Completed" : "Enrolled";
   };
 
+  // Listes uniques pour les dropdowns (extraites des cours chargés)
+  const levelOptions = [
+    ...new Set(courses.filter((c) => c.Level || c.level).map((c) => c.Level || c.level)),
+  ];
+
+  const instructorOptions = [
+    ...new Map(
+      courses
+        .filter((c) => c.Teacher)
+        .map((c) => [c.Teacher._id, `${c.Teacher.firstName || ""} ${c.Teacher.lastName || ""}`.trim()])
+    ).entries(),
+  ];
+
+  // Filtrer les cours selon recherche + level + instructor
+  const filteredCourses = courses.filter((course) => {
+    const title = (course.Title || course.title || "").toLowerCase();
+    const instructorName = course.Teacher
+      ? `${course.Teacher.firstName || ""} ${course.Teacher.lastName || course.Teacher.name || ""}`.toLowerCase()
+      : "";
+    const search = searchTerm.toLowerCase();
+    const matchesSearch = title.includes(search) || instructorName.includes(search);
+
+    const courseLevel = course.Level || course.level;
+    const matchesLevel = levelFilter === "all" || courseLevel === levelFilter;
+
+    const matchesInstructor = instructorFilter === "all" || course.Teacher?._id === instructorFilter;
+
+    return matchesSearch && matchesLevel && matchesInstructor;
+  });
+
   return (
     <DashboardLayout title="My Courses" subtitle="Student View">
+
+      {/* Barre de recherche + Filtres */}
+      <div className="flex gap-3 mb-4">
+        <input
+          type="text"
+          placeholder="Rechercher par nom de cours ou instructeur..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className={`flex-1 rounded-xl border px-4 py-2.5 text-sm outline-none focus:border-blue-500 ${
+            isDark ? "bg-slate-900 border-slate-800 text-white placeholder-slate-500" : "bg-white border-slate-200 text-slate-900 placeholder-slate-400"
+          }`}
+        />
+        <select
+          value={levelFilter}
+          onChange={(e) => setLevelFilter(e.target.value)}
+          className={`rounded-xl border px-4 py-2.5 text-sm outline-none focus:border-blue-500 ${
+            isDark ? "bg-slate-900 border-slate-800 text-white" : "bg-white border-slate-200 text-slate-900"
+          }`}
+        >
+          <option value="all">Tous les niveaux</option>
+          {levelOptions.map((lvl) => (
+            <option key={lvl} value={lvl}>{lvl}</option>
+          ))}
+        </select>
+        <select
+          value={instructorFilter}
+          onChange={(e) => setInstructorFilter(e.target.value)}
+          className={`rounded-xl border px-4 py-2.5 text-sm outline-none focus:border-blue-500 ${
+            isDark ? "bg-slate-900 border-slate-800 text-white" : "bg-white border-slate-200 text-slate-900"
+          }`}
+        >
+          <option value="all">Tous les instructeurs</option>
+          {instructorOptions.map(([id, name]) => (
+            <option key={id} value={id}>{name}</option>
+          ))}
+        </select>
+      </div>
+
       <div className={`rounded-2xl border overflow-hidden mb-6 ${isDark ? "bg-slate-950 border-slate-800" : "bg-white border-slate-200"}`}>
         {loading ? (
           <p className="p-6 text-slate-400">Chargement des cours...</p>
+        ) : filteredCourses.length === 0 ? (
+          <p className={`p-6 text-center ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+            Aucun cours trouvé.
+          </p>
         ) : (
           <table className="w-full text-sm">
             <thead>
@@ -69,7 +147,7 @@ function StudentCoursesPage() {
               </tr>
             </thead>
             <tbody>
-              {courses.map((course) => {
+              {filteredCourses.map((course) => {
                 const instructorName = course.Teacher
                   ? `${course.Teacher.firstName || ""} ${course.Teacher.lastName || course.Teacher.name || ""}`.trim()
                   : "Instructor";

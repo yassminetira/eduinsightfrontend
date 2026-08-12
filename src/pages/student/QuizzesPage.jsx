@@ -14,6 +14,9 @@ function StudentQuizzesPage() {
   const [selectedAnswers, setSelectedAnswers] = useState({});
   const [isFinished, setIsFinished] = useState(false);
 
+  // State mta3 el recherche
+  const [searchTerm, setSearchTerm] = useState("");
+
   useEffect(() => {
     const defaultQuizzes = [
       {
@@ -129,6 +132,15 @@ function StudentQuizzesPage() {
     setActiveQuiz(null);
   };
 
+  // Filtrer les quiz selon el recherche (par Course Title wela Quiz Title)
+  const filteredQuizzes = quizzes.filter((q) => {
+    const courseTitle = (q.courseTitle || "").toLowerCase();
+    const quizTitle = (q.quizTitle || "").toLowerCase();
+    const search = searchTerm.toLowerCase();
+
+    return courseTitle.includes(search) || quizTitle.includes(search);
+  });
+
   return (
     <DashboardLayout title="My Quizzes" subtitle="Test yourself">
       {activeQuiz ? (
@@ -230,78 +242,99 @@ function StudentQuizzesPage() {
           )}
         </div>
       ) : (
-        <div
-          className={`rounded-2xl border overflow-hidden ${
-            isDark ? "bg-slate-950 border-slate-800" : "bg-white border-slate-200"
-          }`}
-        >
-          <table className="w-full text-sm">
-            <thead>
-              <tr
-                className={`text-left border-b ${
-                  isDark
-                    ? "border-slate-800 text-slate-400"
-                    : "border-slate-100 text-slate-500"
-                }`}
-              >
-                <th className="px-6 py-4 font-medium">Course</th>
-                <th className="px-6 py-4 font-medium">Quiz</th>
-                <th className="px-6 py-4 font-medium">Questions</th>
-                <th className="px-6 py-4 font-medium">Best Score</th>
-                <th className="px-6 py-4 font-medium text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {quizzes.map((q) => (
-                <tr
-                  key={q._id}
-                  className={`border-b last:border-0 ${
-                    isDark
-                      ? "border-slate-800 hover:bg-slate-900/40"
-                      : "border-slate-50 hover:bg-slate-50"
-                  }`}
-                >
-                  <td
-                    className={`px-6 py-4 font-bold ${
-                      isDark ? "text-white" : "text-slate-900"
+        <>
+          {/* Barre de recherche */}
+          <div className="mb-4">
+            <input
+              type="text"
+              placeholder="Rechercher par titre de cours ou de quiz..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className={`w-full rounded-xl border px-4 py-2.5 text-sm outline-none focus:border-blue-500 ${
+                isDark ? "bg-slate-900 border-slate-800 text-white placeholder-slate-500" : "bg-white border-slate-200 text-slate-900 placeholder-slate-400"
+              }`}
+            />
+          </div>
+
+          <div
+            className={`rounded-2xl border overflow-hidden ${
+              isDark ? "bg-slate-950 border-slate-800" : "bg-white border-slate-200"
+            }`}
+          >
+            {filteredQuizzes.length === 0 ? (
+              <p className={`p-6 text-center ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+                Aucun quiz trouvé.
+              </p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr
+                    className={`text-left border-b ${
+                      isDark
+                        ? "border-slate-800 text-slate-400"
+                        : "border-slate-100 text-slate-500"
                     }`}
                   >
-                    {q.courseTitle}
-                  </td>
-                  <td
-                    className={`px-6 py-4 ${
-                      isDark ? "text-slate-300" : "text-slate-600"
-                    }`}
-                  >
-                    {q.quizTitle}
-                  </td>
-                  <td
-                    className={`px-6 py-4 ${
-                      isDark ? "text-slate-300" : "text-slate-600"
-                    }`}
-                  >
-                    {q.questions.length}
-                  </td>
-                  <td
-                    className={`px-6 py-4 ${
-                      isDark ? "text-slate-300" : "text-slate-600"
-                    }`}
-                  >
-                    {q.bestScore}%
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <button
-                      onClick={() => handleStartQuiz(q)}
-                      className="bg-blue-50 text-blue-600 hover:bg-blue-100 px-5 py-1.5 rounded-full font-semibold text-xs transition-colors"
+                    <th className="px-6 py-4 font-medium">Course</th>
+                    <th className="px-6 py-4 font-medium">Quiz</th>
+                    <th className="px-6 py-4 font-medium">Questions</th>
+                    <th className="px-6 py-4 font-medium">Best Score</th>
+                    <th className="px-6 py-4 font-medium text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredQuizzes.map((q) => (
+                    <tr
+                      key={q._id}
+                      className={`border-b last:border-0 ${
+                        isDark
+                          ? "border-slate-800 hover:bg-slate-900/40"
+                          : "border-slate-50 hover:bg-slate-50"
+                      }`}
                     >
-                      Start
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                      <td
+                        className={`px-6 py-4 font-bold ${
+                          isDark ? "text-white" : "text-slate-900"
+                        }`}
+                      >
+                        {q.courseTitle}
+                      </td>
+                      <td
+                        className={`px-6 py-4 ${
+                          isDark ? "text-slate-300" : "text-slate-600"
+                        }`}
+                      >
+                        {q.quizTitle}
+                      </td>
+                      <td
+                        className={`px-6 py-4 ${
+                          isDark ? "text-slate-300" : "text-slate-600"
+                        }`}
+                      >
+                        {q.questions.length}
+                      </td>
+                      <td
+                        className={`px-6 py-4 ${
+                          isDark ? "text-slate-300" : "text-slate-600"
+                        }`}
+                      >
+                        {q.bestScore}%
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <button
+                          onClick={() => handleStartQuiz(q)}
+                          className="bg-blue-50 text-blue-600 hover:bg-blue-100 px-5 py-1.5 rounded-full font-semibold text-xs transition-colors"
+                        >
+                          Start
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </>
       )}
     </DashboardLayout>
   );

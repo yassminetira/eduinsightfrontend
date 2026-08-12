@@ -18,9 +18,14 @@ function CoursesPage() {
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
+  // Recherche + Filtres
+  const [searchTerm, setSearchTerm] = useState("");
+  const [instructorFilter, setInstructorFilter] = useState("all");
+  const [departmentFilter, setDepartmentFilter] = useState("all");
+
   // Modal & Edit State
   const [showModal, setShowModal] = useState(false);
-  const [editingId, setEditingId] = useState(null); // null = Mode Ajout | string _id = Mode Edit
+  const [editingId, setEditingId] = useState(null);
   const [teachers, setTeachers] = useState([]);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
@@ -60,6 +65,35 @@ function CoursesPage() {
     }
   };
 
+  // Listes uniques pour les dropdowns de filtre (extraites des cours affichés)
+  const instructorOptions = [
+    ...new Map(
+      courses
+        .filter((c) => c.Teacher)
+        .map((c) => [c.Teacher._id, `${c.Teacher.firstName} ${c.Teacher.lastName}`])
+    ).entries(),
+  ];
+
+  const departmentOptions = [
+    ...new Map(
+      courses
+        .filter((c) => c.Department)
+        .map((c) => [
+          c.Department._id || c.Department,
+          c.Department.name || c.Department,
+        ])
+    ).entries(),
+  ];
+
+  // Filtrage: recherche par titre + instructor + department
+  const filteredCourses = courses.filter((course) => {
+    const matchesSearch = (course.Title || "").toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesInstructor = instructorFilter === "all" || course.Teacher?._id === instructorFilter;
+    const courseDeptId = course.Department?._id || course.Department;
+    const matchesDepartment = departmentFilter === "all" || courseDeptId === departmentFilter;
+    return matchesSearch && matchesInstructor && matchesDepartment;
+  });
+
   // ➕ Ouvrir Modal pour Ajouter
   const openAddModal = async () => {
     setEditingId(null);
@@ -73,7 +107,6 @@ function CoursesPage() {
   const openEditModal = async (course) => {
     setEditingId(course._id);
 
-    // Préparer les leçons sous forme de texte séparé par des virgules
     let lessonsString = "";
     if (Array.isArray(course.Lessons)) {
       lessonsString = course.Lessons.map((l) => (typeof l === "string" ? l : l.title)).join(", ");
@@ -97,7 +130,7 @@ function CoursesPage() {
     if (window.confirm("Voulez-vous vraiment supprimer ce cours ?")) {
       try {
         await deleteCourse(id);
-        fetchCourses(); // Rafraîchir la liste
+        fetchCourses();
       } catch (err) {
         console.error("Erreur suppression", err);
         alert(err.response?.data?.message || "Impossible de supprimer le cours.");
@@ -134,10 +167,8 @@ function CoursesPage() {
 
     try {
       if (editingId) {
-        // Mode Edit
         await updateCourse(editingId, payload);
       } else {
-        // Mode Add
         await createCourse(payload);
       }
       setShowModal(false);
@@ -168,11 +199,52 @@ function CoursesPage() {
         </button>
       </div>
 
+      {/* Barre de recherche + Filtres */}
+      <div className="flex gap-3 mb-4">
+        <input
+          type="text"
+          placeholder="Rechercher par titre..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className={`flex-1 rounded-lg border px-4 py-2.5 text-sm outline-none focus:border-cyan-400 ${
+            isDark ? "bg-slate-900 border-slate-800 text-white placeholder-slate-500" : "bg-white border-slate-200 text-slate-900 placeholder-slate-400"
+          }`}
+        />
+        <select
+          value={instructorFilter}
+          onChange={(e) => setInstructorFilter(e.target.value)}
+          className={`rounded-lg border px-4 py-2.5 text-sm outline-none focus:border-cyan-400 ${
+            isDark ? "bg-slate-900 border-slate-800 text-white" : "bg-white border-slate-200 text-slate-900"
+          }`}
+        >
+          <option value="all">Tous les instructeurs</option>
+          {instructorOptions.map(([id, name]) => (
+            <option key={id} value={id}>{name}</option>
+          ))}
+        </select>
+        <select
+          value={departmentFilter}
+          onChange={(e) => setDepartmentFilter(e.target.value)}
+          className={`rounded-lg border px-4 py-2.5 text-sm outline-none focus:border-cyan-400 ${
+            isDark ? "bg-slate-900 border-slate-800 text-white" : "bg-white border-slate-200 text-slate-900"
+          }`}
+        >
+          <option value="all">Tous les départements</option>
+          {departmentOptions.map(([id, name]) => (
+            <option key={id} value={id}>{name}</option>
+          ))}
+        </select>
+      </div>
+
       <div className={`rounded-2xl border overflow-hidden ${isDark ? "bg-slate-950 border-slate-800" : "bg-white border-slate-200"}`}>
         {loading ? (
           <p className={`p-6 ${isDark ? "text-slate-400" : "text-slate-500"}`}>Chargement...</p>
         ) : error ? (
           <p className="p-6 text-red-500">{error}</p>
+        ) : filteredCourses.length === 0 ? (
+          <p className={`p-6 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+            Aucun cours trouvé.
+          </p>
         ) : (
           <table className="w-full text-sm">
             <thead>
@@ -184,7 +256,7 @@ function CoursesPage() {
               </tr>
             </thead>
             <tbody>
-              {courses.map((course) => (
+              {filteredCourses.map((course) => (
                 <tr key={course._id} className={`border-b last:border-0 ${isDark ? "border-slate-800" : "border-slate-50"}`}>
                   <td className={`px-6 py-4 font-semibold ${isDark ? "text-white" : "text-slate-900"}`}>
                     {course.Title}
@@ -199,14 +271,12 @@ function CoursesPage() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex gap-2">
-                      {/* 👈 Bouton Edit */}
                       <button
                         onClick={() => openEditModal(course)}
                         className="px-4 py-1.5 rounded-full bg-blue-500/10 text-blue-400 font-medium text-xs hover:bg-blue-500/20"
                       >
                         Edit
                       </button>
-                      {/* 👈 Bouton Delete */}
                       <button
                         onClick={() => handleDelete(course._id)}
                         className="px-4 py-1.5 rounded-full bg-red-500/10 text-red-400 font-medium text-xs hover:bg-red-500/20"

@@ -29,6 +29,10 @@ function TeacherQuizzesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Recherche + Filtre par cours
+  const [searchTerm, setSearchTerm] = useState("");
+  const [courseFilter, setCourseFilter] = useState("all");
+
   // Modal & Edit State
   const [showModal, setShowModal] = useState(false);
   const [editingQuizId, setEditingQuizId] = useState(null); // null = création, string = édition
@@ -47,14 +51,14 @@ function TeacherQuizzesPage() {
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const teacherId = user?.id || user?._id;
 
-  // 1. Charger la liste des cours du Teacher (pour la liste déroulante du Modal)
+  // 1. Charger la liste des cours du Teacher (filtrés pour le select du Modal & Filtre)
   useEffect(() => {
     const fetchCoursesList = async () => {
       try {
         const coursesData = await getAllCourses(1, 100);
         const coursesList = coursesData.cours || coursesData.courses || (Array.isArray(coursesData) ? coursesData : []);
         
-        // Filder les cours متاع الـ Teacher فقط
+        // Filtrer les cours du Teacher connecté
         const myCourses = coursesList.filter((c) => {
           const courseTeacherId = c.Teacher?._id || c.Teacher?.id || c.Teacher || c.teacher?._id || c.teacher?.id || c.teacher;
           return courseTeacherId && String(courseTeacherId) === String(teacherId);
@@ -121,6 +125,15 @@ function TeacherQuizzesPage() {
       setLoading(false);
     }
   }, [teacherId]);
+
+  // Filtrage combiné : Recherche par titre + Filtre par cours sélectionné
+  const filteredQuizzes = quizzes.filter((quiz) => {
+    const title = (quiz.title || quiz.Title || "").toLowerCase();
+    const matchesSearch = title.includes(searchTerm.toLowerCase());
+    const quizCourseId = quiz.cours?._id || quiz.cours || quiz.course?._id || quiz.course;
+    const matchesCourse = courseFilter === "all" || String(quizCourseId) === String(courseFilter);
+    return matchesSearch && matchesCourse;
+  });
 
   // Ouvrir le modal en mode CRÉATION
   const handleOpenCreateModal = () => {
@@ -234,13 +247,40 @@ function TeacherQuizzesPage() {
         </button>
       </div>
 
+      {/* Barre de recherche + Filtre par cours */}
+      <div className="flex gap-3 mb-4">
+        <input
+          type="text"
+          placeholder="Rechercher par titre..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className={`flex-1 rounded-lg border px-4 py-2.5 text-sm outline-none focus:border-cyan-400 ${
+            isDark ? "bg-slate-900 border-slate-800 text-white placeholder-slate-500" : "bg-white border-slate-200 text-slate-900 placeholder-slate-400"
+          }`}
+        />
+        <select
+          value={courseFilter}
+          onChange={(e) => setCourseFilter(e.target.value)}
+          className={`rounded-lg border px-4 py-2.5 text-sm outline-none focus:border-cyan-400 ${
+            isDark ? "bg-slate-900 border-slate-800 text-white" : "bg-white border-slate-200 text-slate-900"
+          }`}
+        >
+          <option value="all">Tous mes cours</option>
+          {courses.map((c) => (
+            <option key={c._id || c.id} value={c._id || c.id}>
+              {c.Title || c.title}
+            </option>
+          ))}
+        </select>
+      </div>
+
       {/* Table */}
       <div className={`rounded-2xl border overflow-hidden ${isDark ? "bg-slate-950 border-slate-800" : "bg-white border-slate-200"}`}>
         {loading ? (
           <p className={`p-6 ${isDark ? "text-slate-400" : "text-slate-500"}`}>Chargement...</p>
         ) : error ? (
           <p className="p-6 text-red-500">{error}</p>
-        ) : quizzes.length === 0 ? (
+        ) : filteredQuizzes.length === 0 ? (
           <p className={`p-6 text-center ${isDark ? "text-slate-400" : "text-slate-500"}`}>
             Aucun quiz trouvé.
           </p>
@@ -255,7 +295,7 @@ function TeacherQuizzesPage() {
               </tr>
             </thead>
             <tbody>
-              {quizzes.map((quiz) => {
+              {filteredQuizzes.map((quiz) => {
                 const quizId = quiz._id || quiz.id;
                 return (
                   <tr key={quizId} className={`border-b last:border-0 ${isDark ? "border-slate-800 hover:bg-slate-900/50" : "border-slate-50 hover:bg-slate-50/50"}`}>
