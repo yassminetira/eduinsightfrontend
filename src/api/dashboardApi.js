@@ -14,6 +14,14 @@ export const getStudentDashboard = async () => {
   const res = await api.get("/dashboard/student", { headers: authHeader() });
   return res.data;
 };
+export const getAnalytics = async () => {
+  const res = await api.get("/dashboard/analytics", { headers: authHeader() });
+  return res.data;
+};
+export const getStudentProgress = async () => {
+  const res = await api.get("/dashboard/progress", { headers: authHeader() });
+  return res.data;
+};
 function authHeader() {
   const token = localStorage.getItem("token");
   return token ? { Authorization: `Bearer ${token}` } : {};

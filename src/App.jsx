@@ -20,6 +20,9 @@ import SettingsPage from "./pages/admin/SettingsPage";
 import TeacherSettingsPage from "./pages/teacher/SettingsPage";
 import StudentCoursesPage from "./pages/student/CoursesPage";
 import CertificatesPage from "./pages/student/CertificatesPage";
+ import AnalyticsPage from "./pages/admin/AnalyticsPage";
+ import ProgressPage from "./pages/student/ProgressPage";
+
 function App() {
   return (
     <Routes>
@@ -65,6 +68,8 @@ function App() {
          <Route path="/teacher/settings" element={<SettingsPage />} />
          <Route path="/student/courses" element={<StudentCoursesPage />} />
          <Route path="/student/certificates" element={<CertificatesPage />} />
+        <Route path="/admin/analytics" element={<AnalyticsPage />} />
+        <Route path="/student/progress" element={<ProgressPage />} />
 
     </Routes>
   );
